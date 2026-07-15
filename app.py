@@ -27,12 +27,29 @@ def start_bot():
     """Start the mail bot"""
     try:
         data = request.json
+        
+        # Get credentials from form
+        client_email = data.get('client_email', '')
+        client_password = data.get('client_password', '')
         recipients = data.get('recipients', [])
         subject = data.get('subject', '')
         message = data.get('message', '')
         
-        # Initialize Outlook service
+        # Validate inputs
+        if not client_email or not client_password:
+            return jsonify({'status': 'error', 'message': 'Email and password are required'}), 400
+        
+        if not recipients or len(recipients) == 0:
+            return jsonify({'status': 'error', 'message': 'At least one recipient is required'}), 400
+        
+        if not subject or not message:
+            return jsonify({'status': 'error', 'message': 'Subject and message are required'}), 400
+        
+        # Initialize Outlook service with user credentials
         outlook_service = OutlookMailService(
+            email=client_email,
+            password=client_password,
+            # Or use these if you have them configured:
             client_id=os.getenv('MICROSOFT_CLIENT_ID'),
             client_secret=os.getenv('MICROSOFT_CLIENT_SECRET'),
             tenant_id=os.getenv('MICROSOFT_TENANT_ID')
@@ -42,7 +59,11 @@ def start_bot():
         scheduler = MailScheduler(outlook_service)
         result = asyncio.run(scheduler.send_bulk_mail(recipients, subject, message))
         
-        return jsonify({'status': 'success', 'message': 'Bot executed successfully!', 'result': result})
+        return jsonify({
+            'status': 'success',
+            'message': f'Emails sent successfully to {len(recipients)} recipient(s)!',
+            'result': result
+        })
     except Exception as e:
         logger.error(f"Error: {str(e)}")
         return jsonify({'status': 'error', 'message': str(e)}), 500
@@ -52,7 +73,7 @@ def status():
     """Check bot status"""
     return jsonify({
         'status': 'running',
-        'bot_type': os.getenv('BOT_TYPE', 'cli'),
+        'bot_type': 'web',
         'client_id_set': bool(os.getenv('MICROSOFT_CLIENT_ID'))
     })
 
