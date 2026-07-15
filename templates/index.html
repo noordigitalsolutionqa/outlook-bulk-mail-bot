@@ -1,0 +1,347 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Outlook Bulk Mail Bot</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding: 20px;
+        }
+
+        .container {
+            background: white;
+            border-radius: 15px;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+            max-width: 500px;
+            width: 100%;
+            padding: 40px;
+        }
+
+        .header {
+            text-align: center;
+            margin-bottom: 30px;
+        }
+
+        .header h1 {
+            color: #333;
+            margin-bottom: 5px;
+            font-size: 28px;
+        }
+
+        .header p {
+            color: #666;
+            font-size: 14px;
+        }
+
+        .status {
+            display: inline-block;
+            padding: 8px 16px;
+            border-radius: 20px;
+            font-size: 12px;
+            font-weight: bold;
+            background: #10b981;
+            color: white;
+            margin-top: 10px;
+        }
+
+        .form-group {
+            margin-bottom: 20px;
+        }
+
+        label {
+            display: block;
+            margin-bottom: 8px;
+            color: #333;
+            font-weight: 600;
+            font-size: 14px;
+        }
+
+        input, textarea {
+            width: 100%;
+            padding: 12px;
+            border: 2px solid #e0e0e0;
+            border-radius: 8px;
+            font-size: 14px;
+            font-family: inherit;
+            transition: all 0.3s;
+        }
+
+        input:focus, textarea:focus {
+            outline: none;
+            border-color: #667eea;
+            box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+        }
+
+        textarea {
+            resize: vertical;
+            min-height: 100px;
+        }
+
+        .helper-text {
+            font-size: 12px;
+            color: #999;
+            margin-top: 5px;
+        }
+
+        .button-group {
+            display: flex;
+            gap: 10px;
+            margin-top: 30px;
+        }
+
+        button {
+            flex: 1;
+            padding: 14px 24px;
+            border: none;
+            border-radius: 8px;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+
+        .btn-execute {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+        }
+
+        .btn-execute:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 25px rgba(102, 126, 234, 0.4);
+        }
+
+        .btn-execute:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        .btn-clear {
+            background: #f0f0f0;
+            color: #333;
+        }
+
+        .btn-clear:hover {
+            background: #e0e0e0;
+        }
+
+        .message {
+            margin-top: 20px;
+            padding: 15px;
+            border-radius: 8px;
+            display: none;
+            font-size: 14px;
+            animation: slideIn 0.3s ease;
+        }
+
+        @keyframes slideIn {
+            from {
+                opacity: 0;
+                transform: translateY(-10px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .message.success {
+            background: #d1fae5;
+            color: #065f46;
+            border-left: 4px solid #10b981;
+            display: block;
+        }
+
+        .message.error {
+            background: #fee2e2;
+            color: #7f1d1d;
+            border-left: 4px solid #ef4444;
+            display: block;
+        }
+
+        .message.info {
+            background: #dbeafe;
+            color: #0c4a6e;
+            border-left: 4px solid #0ea5e9;
+            display: block;
+        }
+
+        .loading {
+            display: none;
+            text-align: center;
+            margin-top: 15px;
+        }
+
+        .loading.active {
+            display: block;
+        }
+
+        .spinner {
+            border: 3px solid #f3f3f3;
+            border-top: 3px solid #667eea;
+            border-radius: 50%;
+            width: 30px;
+            height: 30px;
+            animation: spin 1s linear infinite;
+            margin: 0 auto 10px;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        .info-box {
+            background: #f0f4ff;
+            border-left: 4px solid #667eea;
+            padding: 12px;
+            border-radius: 5px;
+            font-size: 13px;
+            color: #333;
+            margin-top: 20px;
+            line-height: 1.5;
+        }
+
+        .info-box strong {
+            color: #667eea;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>📧 Outlook Mail Bot</h1>
+            <p>Send bulk emails instantly</p>
+            <div class="status">● Ready to Execute</div>
+        </div>
+
+        <form id="mailForm">
+            <div class="form-group">
+                <label for="recipients">📧 Recipients</label>
+                <input type="text" id="recipients" placeholder="user1@example.com, user2@example.com, ..." required>
+                <div class="helper-text">Separate multiple emails with commas</div>
+            </div>
+
+            <div class="form-group">
+                <label for="subject">📝 Subject</label>
+                <input type="text" id="subject" placeholder="Enter email subject" required>
+            </div>
+
+            <div class="form-group">
+                <label for="message">💬 Message</label>
+                <textarea id="message" placeholder="Enter your message here..." required></textarea>
+            </div>
+
+            <div class="button-group">
+                <button type="submit" class="btn-execute" id="executeBtn">🚀 Execute Now</button>
+                <button type="reset" class="btn-clear">🔄 Clear</button>
+            </div>
+
+            <div class="loading" id="loading">
+                <div class="spinner"></div>
+                <p>Processing your request...</p>
+            </div>
+
+            <div class="message" id="message"></div>
+
+            <div class="info-box">
+                <strong>ℹ️ How it works:</strong><br>
+                1. Enter recipient emails<br>
+                2. Add subject and message<br>
+                3. Click "Execute Now"<br>
+                4. Emails sent instantly! ✓
+            </div>
+        </form>
+    </div>
+
+    <script>
+        const form = document.getElementById('mailForm');
+        const recipientsInput = document.getElementById('recipients');
+        const subjectInput = document.getElementById('subject');
+        const messageInput = document.getElementById('message');
+        const executeBtn = document.getElementById('executeBtn');
+        const loading = document.getElementById('loading');
+        const messageEl = document.getElementById('message');
+
+        form.addEventListener('submit', async (e) => {
+            e.preventDefault();
+
+            const recipients = recipientsInput.value
+                .split(',')
+                .map(email => email.trim())
+                .filter(email => email);
+
+            if (recipients.length === 0) {
+                showMessage('Please enter at least one email address', 'error');
+                return;
+            }
+
+            const subject = subjectInput.value.trim();
+            const message = messageInput.value.trim();
+
+            if (!subject || !message) {
+                showMessage('Please fill in all fields', 'error');
+                return;
+            }
+
+            // Show loading state
+            executeBtn.disabled = true;
+            loading.classList.add('active');
+            messageEl.style.display = 'none';
+
+            try {
+                const response = await fetch('/api/start', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        recipients: recipients,
+                        subject: subject,
+                        message: message
+                    })
+                });
+
+                const data = await response.json();
+
+                if (response.ok) {
+                    showMessage(`✓ Success! Emails sent to ${recipients.length} recipient(s)`, 'success');
+                    form.reset();
+                } else {
+                    showMessage(`✗ Error: ${data.message || 'Failed to send emails'}`, 'error');
+                }
+            } catch (error) {
+                showMessage(`✗ Connection Error: ${error.message}`, 'error');
+            } finally {
+                executeBtn.disabled = false;
+                loading.classList.remove('active');
+            }
+        });
+
+        function showMessage(text, type) {
+            messageEl.textContent = text;
+            messageEl.className = `message ${type}`;
+            messageEl.style.display = 'block';
+
+            if (type === 'success') {
+                setTimeout(() => {
+                    messageEl.style.display = 'none';
+                }, 5000);
+            }
+        }
+    </script>
+</body>
+</html>
